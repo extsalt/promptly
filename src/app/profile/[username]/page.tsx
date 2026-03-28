@@ -63,6 +63,7 @@ export default async function UserProfilePage({ params }: { params: { username: 
       user={user} 
       userPrompts={formattedPrompts} 
       isCurrentUser={isCurrentUser} 
+      userId={profileData.id}
     />
   );
 }

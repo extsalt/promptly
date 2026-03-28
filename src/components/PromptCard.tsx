@@ -1,9 +1,10 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { MessageSquare, Copy } from "lucide-react";
+import { MessageSquare, Copy, Bookmark } from "lucide-react";
 import { Button } from "./Button";
 import { createClient } from "@/utils/supabase/client";
+import { SaveToCollectionModal } from "./SaveToCollectionModal";
 
 export interface PromptData {
   id: string;
@@ -25,6 +26,7 @@ export function PromptCard({ prompt, onTweak }: PromptCardProps) {
   const [upvotes, setUpvotes] = useState(prompt.upvotes);
   const [hasUpvoted, setHasUpvoted] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [origin, setOrigin] = useState("");
   const supabase = createClient();
 
@@ -80,6 +82,15 @@ export function PromptCard({ prompt, onTweak }: PromptCardProps) {
         setHasUpvoted(true);
       }
     }
+  };
+
+  const handleSave = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("Please log in to save to collections.");
+      return;
+    }
+    setIsSaveModalOpen(true);
   };
 
   const handleCopy = () => {
@@ -193,6 +204,14 @@ export function PromptCard({ prompt, onTweak }: PromptCardProps) {
              <MessageSquare className="w-4.5 h-4.5" />
              {prompt.comments}
           </button>
+          <button 
+            onClick={handleSave}
+            className="flex items-center gap-1.5 text-sm font-semibold text-foreground/50 hover:text-emerald-500 transition-colors"
+            title="Save to Collection"
+          >
+             <Bookmark className="w-4.5 h-4.5" />
+             Save
+          </button>
         </div>
         <Link href={`/prompt/${prompt.id}`}>
           <Button variant="ghost" size="sm" className="gap-2 border border-border/40 h-8 px-4 rounded-full text-xs font-bold hover:bg-foreground/5 transition-colors">
@@ -200,6 +219,12 @@ export function PromptCard({ prompt, onTweak }: PromptCardProps) {
           </Button>
         </Link>
       </div>
+
+      <SaveToCollectionModal 
+        isOpen={isSaveModalOpen}
+        onClose={() => setIsSaveModalOpen(false)}
+        promptId={prompt.id}
+      />
     </div>
   );
 }

@@ -120,4 +120,59 @@ INSERT INTO prompts (title, content, tags) VALUES
 ('Ultimate Study Guide Creator', 'Based on the following lecture notes/text, create a comprehensive study guide. Include: 1. A summary of key concepts, 2. A ''Cheat Sheet'' of formulas or definitions, 3. 5 potential exam questions (3 conceptual, 2 applied), and 4. An Active Recall schedule for the next 2 weeks.', '{student, study, active-recall}'),
 ('LaTeX & Markdown Academic Assistant', 'Help me format my research findings into a professional LaTeX document or a structured Markdown report. I will provide raw data and sections; you ensure consistent citation styles, properly formatted mathematical equations using dollar signs, and hierarchical headers.', '{student, academic, formatting}');
 
+-- 7. Collections
+CREATE TABLE IF NOT EXISTS collections (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polname = 'Users can view their own collections') THEN
+    CREATE POLICY "Users can view their own collections" ON collections FOR SELECT USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polname = 'Users can insert their own collections') THEN
+    CREATE POLICY "Users can insert their own collections" ON collections FOR INSERT WITH CHECK (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polname = 'Users can update their own collections') THEN
+    CREATE POLICY "Users can update their own collections" ON collections FOR UPDATE USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polname = 'Users can delete their own collections') THEN
+    CREATE POLICY "Users can delete their own collections" ON collections FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
+
+ALTER TABLE collections ENABLE ROW LEVEL SECURITY;
+
+-- 8. Collection Prompts (Join Table)
+CREATE TABLE IF NOT EXISTS collection_prompts (
+  collection_id UUID REFERENCES collections(id) ON DELETE CASCADE NOT NULL,
+  prompt_id UUID REFERENCES prompts(id) ON DELETE CASCADE NOT NULL,
+  PRIMARY KEY (collection_id, prompt_id)
+);
+
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polname = 'Users can view prompts in their collections') THEN
+    CREATE POLICY "Users can view prompts in their collections" ON collection_prompts FOR SELECT USING (
+      EXISTS (SELECT 1 FROM collections WHERE id = collection_id AND user_id = auth.uid())
+    );
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polname = 'Users can add prompts to their collections') THEN
+    CREATE POLICY "Users can add prompts to their collections" ON collection_prompts FOR INSERT WITH CHECK (
+      EXISTS (SELECT 1 FROM collections WHERE id = collection_id AND user_id = auth.uid())
+    );
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polname = 'Users can remove prompts from their collections') THEN
+    CREATE POLICY "Users can remove prompts from their collections" ON collection_prompts FOR DELETE USING (
+      EXISTS (SELECT 1 FROM collections WHERE id = collection_id AND user_id = auth.uid())
+    );
+  END IF;
+END $$;
+
+ALTER TABLE collection_prompts ENABLE ROW LEVEL SECURITY;
+
 
