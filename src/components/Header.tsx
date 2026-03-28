@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "./Button";
 import { createClient } from "@/utils/supabase/client";
+import { Menu, X } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 
 interface HeaderProps {
@@ -16,6 +17,7 @@ export function Header({ onShareClick }: HeaderProps) {
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const getUser = async () => {
@@ -51,7 +53,9 @@ export function Header({ onShareClick }: HeaderProps) {
           </div>
           <span className="font-bold text-xl tracking-tight text-foreground hidden sm:block">Promptly</span>
         </Link>
-        <nav className="flex items-center gap-4 sm:gap-6">
+        
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center gap-4 sm:gap-6">
           <Link href="/" className={`text-sm font-medium transition-colors ${pathname === '/' ? 'text-foreground' : 'text-foreground/70 hover:text-foreground'}`}>Explore</Link>
           <Link href="/leaderboard" className={`text-sm font-medium transition-colors ${pathname === '/leaderboard' ? 'text-foreground' : 'text-foreground/70 hover:text-foreground'}`}>Leaderboard</Link>
           
@@ -86,7 +90,80 @@ export function Header({ onShareClick }: HeaderProps) {
             </Button>
           )}
         </nav>
+
+        {/* Mobile Toggle */}
+        <div className="flex md:hidden items-center gap-3">
+          {onShareClick && (
+            <Button 
+              onClick={onShareClick}
+              variant="primary"
+              size="sm"
+              className="font-bold py-1 h-8 rounded-md"
+            >
+              Share
+            </Button>
+          )}
+          <button 
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-1.5 hover:bg-foreground/5 rounded-md text-foreground transition-colors"
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
+
+      {/* Mobile Menu Overlay */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden absolute top-14 left-0 w-full bg-background border-b border-border shadow-xl animate-in slide-in-from-top-4 duration-200 z-40">
+          <nav className="flex flex-col p-4 gap-4">
+            <Link 
+              href="/" 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`text-base font-semibold py-2 px-3 rounded-lg ${pathname === '/' ? 'bg-foreground/5 text-foreground' : 'text-foreground/70'}`}
+            >
+              Explore
+            </Link>
+            <Link 
+              href="/leaderboard" 
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`text-base font-semibold py-2 px-3 rounded-lg ${pathname === '/leaderboard' ? 'bg-foreground/5 text-foreground' : 'text-foreground/70'}`}
+            >
+              Leaderboard
+            </Link>
+            {!loading && user ? (
+              <>
+                <Link 
+                  href={`/profile/${user.user_metadata.username || user.email}`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`text-base font-semibold py-2 px-3 rounded-lg ${pathname.startsWith('/profile') ? 'bg-foreground/5 text-foreground' : 'text-foreground/70'}`}
+                >
+                  Profile
+                </Link>
+                <div className="flex items-center justify-between px-3 py-2 bg-foreground/5 rounded-lg">
+                   <div className="flex items-center gap-2">
+                     <span className="text-xs font-bold text-foreground/70">Lvl {userStats.lvl}</span>
+                     <span className="text-xs font-mono font-medium text-blue-600 dark:text-blue-400">{userStats.xp.toLocaleString()} XP</span>
+                   </div>
+                   <button 
+                    onClick={() => { handleSignOut(); setIsMobileMenuOpen(false); }}
+                    className="text-sm font-bold text-red-500 hover:text-red-600"
+                  >
+                    Log Out
+                  </button>
+                </div>
+              </>
+            ) : !loading && (
+              <Link 
+                href="/login" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="text-base font-semibold py-2 px-3 rounded-lg text-foreground/70"
+              >
+                Log In
+              </Link>
+            )}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
