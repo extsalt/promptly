@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { MessageSquare, Copy } from "lucide-react";
 import { Button } from "./Button";
 import { createClient } from "@/utils/supabase/client";
 
@@ -179,12 +180,13 @@ export function PromptCard({ prompt }: PromptCardProps) {
              {upvotes}
           </button>
           <button className="flex items-center gap-1.5 text-sm font-medium text-foreground/60 hover:text-blue-600 transition-colors">
-             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+             <MessageSquare className="w-4 h-4" />
              {prompt.comments}
           </button>
         </div>
         <Link href={`/prompt/${prompt.id}`}>
-          <Button variant="ghost" size="sm" className="h-8">
+          <Button variant="ghost" size="sm" className="gap-2 border border-border h-7 px-2">
+            <Copy className="w-3.5 h-3.5" />
             Discuss
           </Button>
         </Link>
