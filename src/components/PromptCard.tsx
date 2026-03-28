@@ -125,9 +125,11 @@ export function PromptCard({ prompt }: PromptCardProps) {
 
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 mt-2 px-1">
         <div className="flex items-center flex-wrap gap-2">
-          <button 
+          <Button 
+            variant="primary"
+            size="sm"
             onClick={handleCopy}
-            className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 bg-primary text-white hover:bg-primary-hover transition-all rounded-md shadow-sm active:scale-95"
+            className="flex items-center gap-1.5 text-[11px] font-bold h-7 px-2.5 shadow-sm active:scale-95"
             title="Copy Prompt"
           >
             {copied ? (
@@ -135,7 +137,7 @@ export function PromptCard({ prompt }: PromptCardProps) {
             ) : (
                <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</>
             )}
-          </button>
+          </Button>
           <div className="w-px h-3 bg-border mx-1 hidden sm:block"></div>
           <span className="text-[11px] font-semibold text-foreground/50 uppercase tracking-wide">Run:</span>
           <div className="flex gap-1.5 flex-wrap">
@@ -186,7 +188,6 @@ export function PromptCard({ prompt }: PromptCardProps) {
         </div>
         <Link href={`/prompt/${prompt.id}`}>
           <Button variant="ghost" size="sm" className="gap-2 border border-border h-7 px-2">
-            <Copy className="w-3.5 h-3.5" />
             Discuss
           </Button>
         </Link>
