@@ -1,19 +1,32 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "./Button";
 
 interface CreatePromptModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { title: string; content: string; tags: string[]; isAnonymous: boolean }) => void;
+  onSubmit: (data: { title: string; content: string; tags: string[]; isAnonymous: boolean; parent_id?: string }) => void;
+  initialData?: { title: string; content: string; tags: string[]; parent_id?: string };
 }
 
-export function CreatePromptModal({ isOpen, onClose, onSubmit }: CreatePromptModalProps) {
+export function CreatePromptModal({ isOpen, onClose, onSubmit, initialData }: CreatePromptModalProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tagsStr, setTagsStr] = useState("");
-
   const [isAnonymous, setIsAnonymous] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && initialData) {
+      setTitle(initialData.title ? `Tweak of: ${initialData.title}` : "");
+      setContent(initialData.content || "");
+      setTagsStr(initialData.tags?.join(", ") || "");
+    } else if (isOpen && !initialData) {
+      setTitle("");
+      setContent("");
+      setTagsStr("");
+      setIsAnonymous(false);
+    }
+  }, [isOpen, initialData]);
 
   if (!isOpen) return null;
 
@@ -22,11 +35,7 @@ export function CreatePromptModal({ isOpen, onClose, onSubmit }: CreatePromptMod
     if (!title.trim() || !content.trim()) return;
     
     const tags = tagsStr.split(",").map(t => t.trim()).filter(Boolean);
-    onSubmit({ title, content, tags, isAnonymous });
-    setTitle("");
-    setContent("");
-    setTagsStr("");
-    setIsAnonymous(false);
+    onSubmit({ title, content, tags, isAnonymous, parent_id: initialData?.parent_id });
     onClose();
   };
 

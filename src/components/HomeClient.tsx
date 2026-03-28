@@ -12,9 +12,10 @@ interface HomeClientProps {
 export function HomeClient({ initialPrompts }: HomeClientProps) {
   const [prompts, setPrompts] = useState<PromptData[]>(initialPrompts);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [tweakData, setTweakData] = useState<{ title: string; content: string; tags: string[]; parent_id?: string } | undefined>(undefined);
   const supabase = createClient();
 
-  const handleCreatePrompt = async (data: { title: string; content: string; tags: string[]; isAnonymous: boolean }) => {
+  const handleCreatePrompt = async (data: { title: string; content: string; tags: string[]; isAnonymous: boolean; parent_id?: string }) => {
     const { data: { user } } = await supabase.auth.getUser();
     
     // Only use user.id if logged in AND not choosing to be anonymous
@@ -26,7 +27,8 @@ export function HomeClient({ initialPrompts }: HomeClientProps) {
         title: data.title,
         content: data.content,
         tags: data.tags,
-        author_id: authorId
+        author_id: authorId,
+        parent_id: data.parent_id
       })
       .select(`
         *,
@@ -48,15 +50,32 @@ export function HomeClient({ initialPrompts }: HomeClientProps) {
       author: newPromptData.profiles?.username || 'Anonymous',
       upvotes: 0,
       comments: 0,
-      tags: newPromptData.tags
+      tags: newPromptData.tags,
+      parent_id: newPromptData.parent_id
     };
 
     setPrompts([formattedPrompt, ...prompts]);
+    setTweakData(undefined);
+  };
+
+  const handleOpenShare = () => {
+    setTweakData(undefined);
+    setIsModalOpen(true);
+  };
+
+  const handleTweak = (prompt: PromptData) => {
+    setTweakData({
+      title: prompt.title,
+      content: prompt.content,
+      tags: prompt.tags,
+      parent_id: prompt.id
+    });
+    setIsModalOpen(true);
   };
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header onShareClick={() => setIsModalOpen(true)} />
+      <Header onShareClick={handleOpenShare} />
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-3 flex flex-col gap-6">
@@ -67,7 +86,7 @@ export function HomeClient({ initialPrompts }: HomeClientProps) {
           
           <div className="flex flex-col gap-4">
             {prompts.map(prompt => (
-              <PromptCard key={prompt.id} prompt={prompt} />
+              <PromptCard key={prompt.id} prompt={prompt} onTweak={handleTweak} />
             ))}
           </div>
         </div>
@@ -104,6 +123,7 @@ export function HomeClient({ initialPrompts }: HomeClientProps) {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onSubmit={handleCreatePrompt} 
+        initialData={tweakData}
       />
     </div>
   );

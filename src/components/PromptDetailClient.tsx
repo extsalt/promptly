@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { PromptCard, PromptData } from "@/components/PromptCard";
 import { Button } from "@/components/Button";
 import { Header } from "@/components/Header";
+import { CreatePromptModal } from "@/components/CreatePromptModal";
 import { createClient } from "@/utils/supabase/client";
 
 interface Comment {
@@ -24,6 +25,48 @@ export function PromptDetailClient({ initialPrompt, initialComments }: PromptDet
   const supabase = createClient();
   const [newComment, setNewComment] = useState("");
   const [comments, setComments] = useState<Comment[]>(initialComments);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [tweakData, setTweakData] = useState<{ title: string; content: string; tags: string[]; parent_id?: string } | undefined>(undefined);
+
+  const handleCreatePrompt = async (data: { title: string; content: string; tags: string[]; isAnonymous: boolean; parent_id?: string }) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const authorId = !data.isAnonymous && user ? user.id : null;
+
+    const { data: newPromptData, error } = await supabase
+      .from("prompts")
+      .insert({
+        title: data.title,
+        content: data.content,
+        tags: data.tags,
+        author_id: authorId,
+        parent_id: data.parent_id
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating prompt:", error.message);
+      return;
+    }
+
+    // After tweaking, we navigate to the new prompt detail page
+    router.push(`/prompt/${newPromptData.id}`);
+  };
+
+  const handleTweak = (prompt: PromptData) => {
+    setTweakData({
+      title: prompt.title,
+      content: prompt.content,
+      tags: prompt.tags,
+      parent_id: prompt.id
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenShare = () => {
+    setTweakData(undefined);
+    setIsModalOpen(true);
+  };
 
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +112,7 @@ export function PromptDetailClient({ initialPrompt, initialComments }: PromptDet
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
+      <Header onShareClick={handleOpenShare} />
       
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-8 flex flex-col gap-6">
         <div className="flex items-center gap-4 mb-2">
@@ -82,7 +125,7 @@ export function PromptDetailClient({ initialPrompt, initialComments }: PromptDet
           <span className="font-semibold text-lg tracking-tight text-foreground">Prompt Detail</span>
         </div>
 
-        <PromptCard prompt={initialPrompt} />
+        <PromptCard prompt={initialPrompt} onTweak={handleTweak} />
         
         <div className="bg-card rounded-lg p-5 border border-border shadow-sm flex flex-col gap-5">
           <h3 className="text-lg font-bold flex items-center gap-2 text-foreground">
@@ -116,6 +159,13 @@ export function PromptDetailClient({ initialPrompt, initialComments }: PromptDet
           </div>
         </div>
       </main>
+
+      <CreatePromptModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSubmit={handleCreatePrompt} 
+        initialData={tweakData}
+      />
     </div>
   );
 }

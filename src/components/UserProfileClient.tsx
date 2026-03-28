@@ -3,6 +3,10 @@ import React from 'react';
 import { Header } from '@/components/Header';
 import { PromptCard, PromptData } from '@/components/PromptCard';
 import { Button } from '@/components/Button';
+import { CreatePromptModal } from '@/components/CreatePromptModal';
+import { createClient } from '@/utils/supabase/client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface UserProfileClientProps {
   user: {
@@ -19,9 +23,52 @@ interface UserProfileClientProps {
 }
 
 export function UserProfileClient({ user, userPrompts, isCurrentUser }: UserProfileClientProps) {
+  const router = useRouter();
+  const supabase = createClient();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [tweakData, setTweakData] = useState<{ title: string; content: string; tags: string[]; parent_id?: string } | undefined>(undefined);
+
+  const handleCreatePrompt = async (data: { title: string; content: string; tags: string[]; isAnonymous: boolean; parent_id?: string }) => {
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const authorId = !data.isAnonymous && authUser ? authUser.id : null;
+
+    const { data: newPromptData, error } = await supabase
+      .from("prompts")
+      .insert({
+        title: data.title,
+        content: data.content,
+        tags: data.tags,
+        author_id: authorId,
+        parent_id: data.parent_id
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating prompt:", error.message);
+      return;
+    }
+
+    router.push(`/prompt/${newPromptData.id}`);
+  };
+
+  const handleTweak = (prompt: PromptData) => {
+    setTweakData({
+      title: prompt.title,
+      content: prompt.content,
+      tags: prompt.tags,
+      parent_id: prompt.id
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenShare = () => {
+    setTweakData(undefined);
+    setIsModalOpen(true);
+  };
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <Header />
+      <Header onShareClick={handleOpenShare} />
       <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-8">
         
         {/* Profile Header */}
@@ -64,7 +111,7 @@ export function UserProfileClient({ user, userPrompts, isCurrentUser }: UserProf
         <div className="flex flex-col gap-6">
           {userPrompts.length > 0 ? (
             userPrompts.map(prompt => (
-              <PromptCard key={prompt.id} prompt={prompt} />
+              <PromptCard key={prompt.id} prompt={prompt} onTweak={handleTweak} />
             ))
           ) : (
             <div className="text-center py-12 bg-foreground/5 border border-border border-dashed rounded-xl">
@@ -74,6 +121,13 @@ export function UserProfileClient({ user, userPrompts, isCurrentUser }: UserProf
         </div>
 
       </main>
+
+      <CreatePromptModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSubmit={handleCreatePrompt} 
+        initialData={tweakData}
+      />
     </div>
   );
 }

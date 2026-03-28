@@ -13,19 +13,25 @@ export interface PromptData {
   upvotes: number;
   comments: number;
   tags: string[];
+  parent_id?: string;
 }
 
 interface PromptCardProps {
   prompt: PromptData;
+  onTweak?: (prompt: PromptData) => void;
 }
 
-export function PromptCard({ prompt }: PromptCardProps) {
+export function PromptCard({ prompt, onTweak }: PromptCardProps) {
   const [upvotes, setUpvotes] = useState(prompt.upvotes);
   const [hasUpvoted, setHasUpvoted] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [origin, setOrigin] = useState("");
   const supabase = createClient();
 
   useEffect(() => {
+    // Set origin after mount to avoid hydration mismatch
+    setOrigin(typeof window !== 'undefined' ? window.location.origin : '');
+
     const checkUpvote = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -138,6 +144,15 @@ export function PromptCard({ prompt }: PromptCardProps) {
                <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy</>
             )}
           </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onTweak?.(prompt)}
+            className="flex items-center gap-1.5 text-[11px] font-bold h-8 px-3 rounded-full border border-border/40 hover:bg-foreground/5 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Tweak
+          </Button>
           <div className="w-px h-3 bg-border/30 mx-1 hidden sm:block"></div>
           <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">Run</span>
           <div className="flex gap-1.5 flex-wrap">
@@ -155,10 +170,10 @@ export function PromptCard({ prompt }: PromptCardProps) {
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-bold text-foreground/40 uppercase tracking-widest">Share</span>
           <div className="flex gap-1.5">
-            <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(prompt.title)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : '')}/prompt/${prompt.id}`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-full bg-foreground/5 hover:bg-foreground/10 text-foreground transition-colors border border-border/30 backdrop-blur-sm" title="Share on X">
+            <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(prompt.title)}&url=${encodeURIComponent(origin)}/prompt/${prompt.id}`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-full bg-foreground/5 hover:bg-foreground/10 text-foreground transition-colors border border-border/30 backdrop-blur-sm" title="Share on X">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             </a>
-            <a href={`https://wa.me/?text=${encodeURIComponent(prompt.title + ' - ' + (typeof window !== 'undefined' ? window.location.origin : '') + '/prompt/' + prompt.id)}`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-full bg-foreground/5 hover:bg-foreground/10 text-foreground transition-colors border border-border/30 backdrop-blur-sm" title="Share on WhatsApp">
+            <a href={`https://wa.me/?text=${encodeURIComponent(prompt.title + ' - ' + origin + '/prompt/' + prompt.id)}`} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-full bg-foreground/5 hover:bg-foreground/10 text-foreground transition-colors border border-border/30 backdrop-blur-sm" title="Share on WhatsApp">
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
             </a>
           </div>

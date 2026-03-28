@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS prompts (
   title TEXT NOT NULL,
   content TEXT NOT NULL,
   tags TEXT[] DEFAULT '{}',
+  parent_id UUID REFERENCES prompts(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
