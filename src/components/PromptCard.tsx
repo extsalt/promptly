@@ -1,7 +1,8 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "./Button";
+import { createClient } from "@/utils/supabase/client";
 
 export interface PromptData {
   id: string;
@@ -21,14 +22,56 @@ export function PromptCard({ prompt }: PromptCardProps) {
   const [upvotes, setUpvotes] = useState(prompt.upvotes);
   const [hasUpvoted, setHasUpvoted] = useState(false);
   const [copied, setCopied] = useState(false);
+  const supabase = createClient();
 
-  const handleUpvote = () => {
+  useEffect(() => {
+    const checkUpvote = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("upvotes")
+        .select()
+        .eq("user_id", user.id)
+        .eq("prompt_id", prompt.id)
+        .single();
+
+      if (data) setHasUpvoted(true);
+    };
+
+    checkUpvote();
+  }, [prompt.id, supabase]);
+
+  const handleUpvote = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      alert("Please log in to upvote.");
+      return;
+    }
+
     if (hasUpvoted) {
-      setUpvotes((prev) => prev - 1);
-      setHasUpvoted(false);
+      const { error } = await supabase
+        .from("upvotes")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("prompt_id", prompt.id);
+
+      if (!error) {
+        setUpvotes((prev) => prev - 1);
+        setHasUpvoted(false);
+      }
     } else {
-      setUpvotes((prev) => prev + 1);
-      setHasUpvoted(true);
+      const { error } = await supabase
+        .from("upvotes")
+        .insert({
+          user_id: user.id,
+          prompt_id: prompt.id
+        });
+
+      if (!error) {
+        setUpvotes((prev) => prev + 1);
+        setHasUpvoted(true);
+      }
     }
   };
 
@@ -52,9 +95,13 @@ export function PromptCard({ prompt }: PromptCardProps) {
         <div className="flex flex-col gap-1">
           <h3 className="text-lg font-bold text-foreground mb-0">{prompt.title}</h3>
           <div className="flex items-center gap-2">
-            <Link href={`/profile/${prompt.author}`} className="text-xs font-semibold text-foreground/60 hover:text-primary transition-colors hover:underline">
-              by @{prompt.author}
-            </Link>
+            {prompt.author && prompt.author !== 'Anonymous' ? (
+              <Link href={`/profile/${prompt.author}`} className="text-xs font-semibold text-foreground/60 hover:text-primary transition-colors hover:underline">
+                by @{prompt.author}
+              </Link>
+            ) : (
+              <span className="text-xs font-semibold text-foreground/60">by Anonymous</span>
+            )}
             <span className={`flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded border ${badge.color}`}>
               {badge.icon} {badge.label}
             </span>
@@ -109,13 +156,13 @@ export function PromptCard({ prompt }: PromptCardProps) {
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold text-foreground/50 uppercase tracking-wide">Share:</span>
           <div className="flex gap-1.5">
-            <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(prompt.title)}&url=${encodeURIComponent('http://localhost:3000/prompt/' + prompt.id)}`} target="_blank" rel="noopener noreferrer" className="p-1 rounded bg-foreground/5 hover:bg-foreground/10 text-foreground transition-colors border border-border" title="Share on X">
+            <a href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(prompt.title)}&url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : '')}/prompt/${prompt.id}`} target="_blank" rel="noopener noreferrer" className="p-1 rounded bg-foreground/5 hover:bg-foreground/10 text-foreground transition-colors border border-border" title="Share on X">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             </a>
-            <a href={`https://wa.me/?text=${encodeURIComponent(prompt.title + ' - http://localhost:3000/prompt/' + prompt.id)}`} target="_blank" rel="noopener noreferrer" className="p-1 rounded bg-foreground/5 hover:bg-foreground/10 text-foreground transition-colors border border-border" title="Share on WhatsApp">
+            <a href={`https://wa.me/?text=${encodeURIComponent(prompt.title + ' - ' + (typeof window !== 'undefined' ? window.location.origin : '') + '/prompt/' + prompt.id)}`} target="_blank" rel="noopener noreferrer" className="p-1 rounded bg-foreground/5 hover:bg-foreground/10 text-foreground transition-colors border border-border" title="Share on WhatsApp">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/><path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1a5 5 0 0 0 5 5h1a.5.5 0 0 0 0-1h-1a.5.5 0 0 0 0 1"/></svg>
             </a>
-            <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('http://localhost:3000/prompt/' + prompt.id)}`} target="_blank" rel="noopener noreferrer" className="p-1 rounded bg-foreground/5 hover:bg-foreground/10 text-foreground transition-colors border border-border" title="Share on Facebook">
+            <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent((typeof window !== 'undefined' ? window.location.origin : '') + '/prompt/' + prompt.id)}`} target="_blank" rel="noopener noreferrer" className="p-1 rounded bg-foreground/5 hover:bg-foreground/10 text-foreground transition-colors border border-border" title="Share on Facebook">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
             </a>
           </div>

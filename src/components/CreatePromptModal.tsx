@@ -5,13 +5,15 @@ import { Button } from "./Button";
 interface CreatePromptModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { title: string; content: string; tags: string[] }) => void;
+  onSubmit: (data: { title: string; content: string; tags: string[]; isAnonymous: boolean }) => void;
 }
 
 export function CreatePromptModal({ isOpen, onClose, onSubmit }: CreatePromptModalProps) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tagsStr, setTagsStr] = useState("");
+
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
   if (!isOpen) return null;
 
@@ -20,10 +22,11 @@ export function CreatePromptModal({ isOpen, onClose, onSubmit }: CreatePromptMod
     if (!title.trim() || !content.trim()) return;
     
     const tags = tagsStr.split(",").map(t => t.trim()).filter(Boolean);
-    onSubmit({ title, content, tags });
+    onSubmit({ title, content, tags, isAnonymous });
     setTitle("");
     setContent("");
     setTagsStr("");
+    setIsAnonymous(false);
     onClose();
   };
 
@@ -74,6 +77,19 @@ export function CreatePromptModal({ isOpen, onClose, onSubmit }: CreatePromptMod
               placeholder="e.g. coding, review, python"
               className="w-full px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-sm"
             />
+          </div>
+
+          <div className="flex items-center gap-2 px-1">
+            <input 
+              type="checkbox"
+              id="anonymous"
+              checked={isAnonymous}
+              onChange={e => setIsAnonymous(e.target.checked)}
+              className="w-4 h-4 rounded border-border bg-background text-primary focus:ring-primary/50"
+            />
+            <label htmlFor="anonymous" className="text-sm font-medium text-foreground/70 cursor-pointer">
+              Post Anonymously
+            </label>
           </div>
 
           <div className="flex justify-end gap-3 mt-2">

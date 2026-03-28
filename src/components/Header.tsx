@@ -1,8 +1,10 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "./Button";
+import { createClient } from "@/utils/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 interface HeaderProps {
   onShareClick?: () => void;
@@ -10,11 +12,35 @@ interface HeaderProps {
 
 export function Header({ onShareClick }: HeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+      setLoading(false);
+    };
+
+    getUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase.auth]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.refresh();
+  };
   
-  // Mocked state: logged in user
-  // In a real app this would come from a NextAuth session or Context provider
-  const isLoggedIn = true; 
-  const user = { username: "current_user", lvl: 12, xp: 3450 };
+  // Mocked stats for now, in real app these would be fetched from 'profiles' table
+  const userStats = { lvl: 1, xp: 0 };
 
   return (
     <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border shadow-sm">
@@ -29,19 +55,24 @@ export function Header({ onShareClick }: HeaderProps) {
           <Link href="/" className={`text-sm font-medium transition-colors ${pathname === '/' ? 'text-foreground' : 'text-foreground/70 hover:text-foreground'}`}>Explore</Link>
           <Link href="/leaderboard" className={`text-sm font-medium transition-colors ${pathname === '/leaderboard' ? 'text-foreground' : 'text-foreground/70 hover:text-foreground'}`}>Leaderboard</Link>
           
-          {isLoggedIn ? (
+          {!loading && user ? (
             <>
               <div className="hidden lg:flex items-center gap-2 bg-foreground/5 border border-border px-3 py-1.5 rounded-md mx-1">
-                <span className="text-xs font-bold text-foreground/70">Lvl {user.lvl}</span>
+                <span className="text-xs font-bold text-foreground/70">Lvl {userStats.lvl}</span>
                 <div className="w-16 h-1.5 bg-border rounded-full overflow-hidden">
-                  <div className="w-3/4 h-full bg-blue-500 rounded-full"></div>
+                  <div className="w-0/4 h-full bg-blue-500 rounded-full"></div>
                 </div>
-                <span className="text-xs font-mono font-medium text-blue-600 dark:text-blue-400">{user.xp.toLocaleString()} XP</span>
+                <span className="text-xs font-mono font-medium text-blue-600 dark:text-blue-400">{userStats.xp.toLocaleString()} XP</span>
               </div>
-              <Link href="/profile/current_user" className={`text-sm font-medium transition-colors ${pathname.startsWith('/profile') ? 'text-foreground' : 'text-foreground/70 hover:text-foreground'}`}>Profile</Link>
-              <Link href="/settings" className={`text-sm font-medium transition-colors ${pathname.startsWith('/settings') ? 'text-foreground' : 'text-foreground/70 hover:text-foreground'}`}>Settings</Link>
+              <Link href={`/profile/${user.user_metadata.username || user.email}`} className={`text-sm font-medium transition-colors ${pathname.startsWith('/profile') ? 'text-foreground' : 'text-foreground/70 hover:text-foreground'}`}>Profile</Link>
+              <button 
+                onClick={handleSignOut}
+                className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+              >
+                Log Out
+              </button>
             </>
-          ) : (
+          ) : !loading && (
             <Link href="/login" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors">Log In</Link>
           )}
 
