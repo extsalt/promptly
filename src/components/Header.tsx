@@ -65,23 +65,22 @@ export function Header({ onShareClick }: HeaderProps) {
                 <span className="text-xs font-mono font-medium text-blue-600 dark:text-blue-400">{userStats.xp.toLocaleString()} XP</span>
               </div>
               <Link href={`/profile/${user.user_metadata.username || user.email}`} className={`text-sm font-medium transition-colors ${pathname.startsWith('/profile') ? 'text-foreground' : 'text-foreground/70 hover:text-foreground'}`}>Profile</Link>
-              <Button 
-          variant="primary" 
-          onClick={onShareClick} 
-          className="font-bold px-4 py-2 h-9 rounded-md transition-all shadow-md active:scale-95 leading-none"
-        >
-          Share Prompt
-        </Button>
+              <button 
+                onClick={handleSignOut}
+                className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+              >
+                Log Out
+              </button>
             </>
           ) : !loading && (
             <Link href="/login" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors">Log In</Link>
           )}
 
-          {onShareClick && !user && (
+          {onShareClick && (
             <Button 
               onClick={onShareClick}
               variant="primary"
-              size="sm"
+              className="font-bold px-4 py-2 h-9 rounded-md transition-all shadow-md active:scale-95 leading-none"
             >
               Share Prompt
             </Button>
