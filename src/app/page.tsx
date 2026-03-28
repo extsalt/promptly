@@ -2,6 +2,8 @@ import React from "react";
 import { createClient } from "@/utils/supabase/server";
 import { HomeClient } from "@/components/HomeClient";
 import { PromptData } from "@/components/PromptCard";
+import { DEFAULT_PROMPTS } from "@/utils/defaultPrompts";
+
 
 export default async function Home() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -44,5 +46,15 @@ export default async function Home() {
     tags: p.tags || []
   }));
 
-  return <HomeClient initialPrompts={initialPrompts} />;
+  // Fallback to default prompts if DB is empty
+  const displayPrompts = initialPrompts.length > 0 ? initialPrompts : DEFAULT_PROMPTS.map((p, i) => ({
+    ...p,
+    id: `default-${i}`,
+    author: 'System',
+    upvotes: 0,
+    comments: 0
+  }));
+
+  return <HomeClient initialPrompts={displayPrompts} />;
 }
+
